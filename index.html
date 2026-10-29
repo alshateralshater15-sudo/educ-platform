@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المنصة الشاملة | V18 (Fast)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif}
+  :root{--primary:#0d6efd;--success:#198754;--danger:#dc3545;--warning:#ffc107;--dark:#1a1d23;--border:#e5e7eb;--shadow:0 4px 20px rgba(0,0,0,.08);--bg:#f0f2f5;--purple:#6c5ce7}
+  body{background:var(--bg);color:var(--dark);line-height:1.6}
+  button{cursor:pointer;border:none;font-family:inherit;transition:0.2s}
+  .btn{padding:10px 20px;border-radius:8px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px;justify-content:center}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-primary:disabled{opacity:0.7;cursor:wait}
+  .btn-success{background:var(--success);color:#fff}
+  .btn-danger{background:var(--danger);color:#fff}
+  .btn-sm{padding:6px 12px;font-size:12px}
+  .hidden{display:none!important}
+
+  /* شاشة الدخول */
+  #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d6efd,#6c5ce7);padding:20px}
+  .login-box{background:#fff;padding:40px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.2);width:100%;max-width:400px;text-align:center}
+  .login-box h2{margin-bottom:25px;color:var(--primary)}
+  .form-group{margin-bottom:15px;text-align:right}
+  .form-group label{display:block;margin-bottom:6px;font-weight:600;font-size:14px}
+  .form-group input,.form-group select{width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;font-size:14px}
+  
+  /* لوحة التحكم */
+  #dashboard{display:none;max-width:1200px;margin:0 auto;padding:30px 20px}
+  .dash-header{background:#fff;border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px}
+  .tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+  .tab-btn{padding:10px 20px;background:#fff;border-radius:10px;font-weight:700;color:#666;box-shadow:var(--shadow);font-size:14px}
+  .tab-btn.active{background:var(--primary);color:#fff}
+  .tab-content{display:none}.tab-content.active{display:block}
+  .card-box{background:#fff;border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px}
+  .table-wrap{overflow:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:12px 14px;text-align:right;border-bottom:1px solid var(--border);font-size:14px;white-space:nowrap}
+  th{background:#f8f9fa;font-weight:700;color:#444}
+  tr:hover td{background:#f8f9fa}
+
+  /* النوافذ والفيديوهات */
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:20px}
+  .modal.active{display:flex}
+  .modal-content{background:#fff;border-radius:16px;padding:25px;max-width:500px;width:100%;max-height:90vh;overflow:auto}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+  .close-btn{background:none;font-size:26px;color:#999}
+  .video-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:15px;border:1px solid var(--border)}
+  .video-header{padding:15px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:#f8f9fa}
+  .video-body{padding:15px}
+  .video-frame{width:100%;height:250px;border:none;border-radius:8px}
+
+  /* أدوات مساعدة */
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--dark);color:#fff;padding:12px 24px;border-radius:10px;font-weight:600;transition:.3s;z-index:2000;opacity:0}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast.success{background:var(--success)}.toast.error{background:var(--danger)}
+  .loader{display:inline-block;width:16px;height:16px;border:3px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin 1s ease-in-out infinite;}
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>🔐 تسجيل الدخول</h2>
+    <div class="form-group"><label>اسم المستخدم</label><input type="text" id="loginUser"></div>
+    <div class="form-group"><label>كلمة المرور</label><input type="password" id="loginPass"></div>
+    <button class="btn btn-primary" id="loginBtn" onclick="doLogin()" style="width:100%;padding:12px;">دخول</button>
+    <p style="margin-top:15px;font-size:12px;color:#888;">للدخول كـ مبرمج: admin / 123456</p>
+  </div>
+</div>
+
+<div id="adminDashboard" style="display:none;max-width:1200px;margin:0 auto;padding:20px;">
+  <div class="dash-header" style="background:#1a1d23;color:#fff;">
+    <div><h2 style="color:#ffc107;">👑 لوحة المبرمج</h2></div>
+    <button class="btn btn-danger btn-sm" onclick="logout()">خروج</button>
+  </div>
+  <div class="card-box">
+    <div style="display:flex;justify-content:space-between;margin-bottom:15px;">
+      <h3>قائمة العملاء</h3>
+      <button class="btn btn-success btn-sm" onclick="openModal('clientModal')">+ إضافة عميل</button>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>الاسم</th><th>الباسورد</th><th>إجراءات</th></tr></thead><tbody id="adminClientsTable"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="dash-header">
+    <div style="display:flex;align-items:center;gap:15px;">
+      <div style="width:45px;height:45px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;">🏫</div>
+      <div><h2 id="sysTitle">نظام الإدارة</h2></div>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="logout()">خروج</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('students',this)">👥 الطلاب</button>
+    <button class="tab-btn" onclick="switchTab('videos',this)">🎬 الفيديوهات</button>
+  </div>
+
+  <div class="tab-content active" id="tab-students">
+    <div class="card-box">
+      <button class="btn btn-success btn-sm" onclick="openModal('studentModal')">+ إضافة طالب</button>
+      <div class="table-wrap" style="margin-top:15px;">
+        <table><thead><tr><th>الاسم</th><th>الباسورد</th><th>إجراء</th></tr></thead><tbody id="studentsTable"></tbody></table>
+      </div>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="tab-videos">
+    <div class="card-box">
+      <button class="btn btn-success btn-sm" onclick="openModal('videoModal')">+ إضافة فيديو</button>
+      <div id="videosList" style="margin-top:15px;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="studentDashboard" style="display:none;max-width:1000px;margin:0 auto;padding:30px 20px;">
+  <div class="dash-header" style="background:var(--purple);color:#fff;">
+    <div><h2 id="stNameTitle">بوابة الطالب</h2></div>
+    <button class="btn btn-danger btn-sm" onclick="logout()">خروج</button>
+  </div>
+  <div class="card-box">
+    <h3>🎬 فيديوهاتك</h3>
+    <div id="stVideosList"></div>
+  </div>
+</div>
+
+<div class="modal" id="clientModal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>➕ إضافة عميل</h3><button class="close-btn" onclick="closeModal('clientModal')">×</button></div>
+    <div class="form-group"><label>الاسم</label><input type="text" id="clName"></div>
+    <div class="form-group"><label>الباسورد</label><input type="text" id="clPass"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="saveClient(this)">حفظ</button>
+  </div>
+</div>
+
+<div class="modal" id="studentModal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>➕ إضافة طالب</h3><button class="close-btn" onclick="closeModal('studentModal')">×</button></div>
+    <div class="form-group"><label>اسم الطالب</label><input type="text" id="stName"></div>
+    <div class="form-group"><label>الباسورد</label><input type="text" id="stPass" value="123456"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="saveStudent(this)">حفظ</button>
+  </div>
+</div>
+
+<div class="modal" id="videoModal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>🎬 إضافة فيديو</h3><button class="close-btn" onclick="closeModal('videoModal')">×</button></div>
+    <div class="form-group"><label>العنوان</label><input type="text" id="vTitle"></div>
+    <div class="form-group"><label>رابط يوتيوب</label><input type="url" id="vUrl"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="saveVideo(this)">حفظ</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SUPABASE_URL = 'https://fozlbjxatzfkfixuaku.supabase.co'; 
+  const SUPABASE_KEY = 'sb_publishable_nxwXnh7oc7j2W4xnvaAUGQ_z6qd8_S1Q'; 
+  const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  
+  const ADMIN_USER = 'admin'; const ADMIN_PASS = '123456';
+  let currentClientName = ''; // عشان نعرف نجيب طلاب مين
+
+  // دالة الدخول السريعة
+  async function doLogin() {
+    const btn = document.getElementById('loginBtn');
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    if(!user || !pass) return toast('أدخل البيانات', 'error');
+
+    btn.innerHTML = '<span class="loader"></span> جاري التحقق...';
+    btn.disabled = true;
+
+    try {
+      if(user === ADMIN_USER && pass === ADMIN_PASS) {
+        await loadAdminClients(); // بنجيب العملاء بس
+        showAdmin();
+      } else {
+        // بنجيب بيانات العميل أو الطالب بس (بحث مباشر وسريع)
+        const { data: clients } = await _supabase.from('clients').select('*').eq('name', user).eq('pass', pass);
+        if(clients && clients.length > 0) {
+          currentClientName = clients[0].name;
+          await loadClientData(); // بنجيب طلاب وفيديوهات السنتر ده بس
+          showClient(clients[0]);
+        } else {
+          const { data: students } = await _supabase.from('students').select('*').eq('name', user).eq('pass', pass);
+          if(students && students.length > 0) {
+            await loadAllVideos(); // الطالب بيشوف كل الفيديوهات
+            showStudent(students[0]);
+          } else {
+            toast('❌ بيانات غير صحيحة', 'error');
+          }
+        }
+      }
+    } catch (err) {
+      toast('⚠️ خطأ في الاتصال', 'error');
+    } finally {
+      btn.innerHTML = 'دخول';
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('loginPass').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // ----------------------------------------------------
+  // دوال جلب البيانات السريعة
+  // ----------------------------------------------------
+  async function loadAdminClients() {
+    const { data } = await _supabase.from('clients').select('*');
+    document.getElementById('adminClientsTable').innerHTML = (data || []).map(c => 
+      `<tr><td>${c.name}</td><td>${c.pass}</td><td><button class="btn btn-danger btn-sm" onclick="delClient(${c.id})">حذف</button></td></tr>`
+    ).join('');
+  }
+
+  async function loadClientData() {
+    // بنجيب الطلاب اللي تبع السنتر ده بس
+    const { data: students } = await _supabase.from('students').select('*').eq('client_name', currentClientName);
+    document.getElementById('studentsTable').innerHTML = (students || []).map(s => 
+      `<tr><td>${s.name}</td><td>${s.pass}</td><td><button class="btn btn-danger btn-sm" onclick="delStudent(${s.id})">حذف</button></td></tr>`
+    ).join('');
+
+    // بنجيب كل الفيديوهات
+    await loadAllVideos(true);
+  }
+
+  async function loadAllVideos(isForClient = false) {
+    const { data: videos } = await _supabase.from('videos').select('*');
+    const html = (videos || []).map(v => {
+      let embed = v.url;
+      if(v.url.includes('youtube.com/watch?v=')) embed = v.url.replace('watch?v=', 'embed/');
+      if(v.url.includes('youtu.be/')) embed = 'https://www.youtube.com/embed/' + v.url.split('youtu.be/')[1];
+      return `<div class="video-card"><div class="video-header"><strong>${v.title}</strong>${isForClient ? `<button class="btn btn-danger btn-sm" onclick="delVideo(${v.id})">حذف</button>` : ''}</div>
+        <div class="video-body"><iframe src="${embed}" class="video-frame" allowfullscreen loading="lazy"></iframe></div></div>`;
+    }).join('');
+    
+    if(isForClient) document.getElementById('videosList').innerHTML = html;
+    else document.getElementById('stVideosList').innerHTML = html;
+  }
+
+  // ----------------------------------------------------
+  // دوال الإضافة والحذف
+  // ----------------------------------------------------
+  async function saveClient(btn) {
+    btn.innerHTML = '<span class="loader"></span>';
+    await _supabase.from('clients').insert([{ name: document.getElementById('clName').value, pass: document.getElementById('clPass').value }]);
+    await loadAdminClients(); closeModal('clientModal'); toast('✅ تم الإضافة', 'success'); btn.innerHTML = 'حفظ';
+  }
+
+  async function saveStudent(btn) {
+    btn.innerHTML = '<span class="loader"></span>';
+    await _supabase.from('students').insert([{ 
+      name: document.getElementById('stName').value, 
+      pass: document.getElementById('stPass').value,
+      client_name: currentClientName // ربط الطالب بالسنتر
+    }]);
+    await loadClientData(); closeModal('studentModal'); toast('✅ تم الإضافة', 'success'); btn.innerHTML = 'حفظ';
+  }
+
+  async function saveVideo(btn) {
+    btn.innerHTML = '<span class="loader"></span>';
+    await _supabase.from('videos').insert([{ title: document.getElementById('vTitle').value, url: document.getElementById('vUrl').value }]);
+    await loadAllVideos(true); closeModal('videoModal'); toast('✅ تم الإضافة', 'success'); btn.innerHTML = 'حفظ';
+  }
+
+  async function delClient(id) { if(!confirm('حذف؟')) return; await _supabase.from('clients').delete().eq('id', id); loadAdminClients(); }
+  async function delStudent(id) { if(!confirm('حذف؟')) return; await _supabase.from('students').delete().eq('id', id); loadClientData(); }
+  async function delVideo(id) { if(!confirm('حذف؟')) return; await _supabase.from('videos').delete().eq('id', id); loadAllVideos(true); }
+
+  // ----------------------------------------------------
+  // أدوات مساعدة
+  // ----------------------------------------------------
+  function showAdmin() { document.getElementById('loginScreen').style.display='none'; document.getElementById('adminDashboard').style.display='block'; }
+  function showClient(c) { document.getElementById('loginScreen').style.display='none'; document.getElementById('dashboard').style.display='block'; document.getElementById('sysTitle').textContent=c.name; }
+  function showStudent(s) { document.getElementById('loginScreen').style.display='none'; document.getElementById('studentDashboard').style.display='block'; document.getElementById('stNameTitle').textContent='أهلاً '+s.name; }
+  function logout() { if(confirm('خروج؟')) location.reload(); }
+  function switchTab(tab, btn) { document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.getElementById('tab-'+tab).classList.add('active'); btn.classList.add('active'); }
+  function openModal(id) { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+  function toast(msg, type) { const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show '+type; setTimeout(()=>t.className='toast '+type,3000); }
+</script>
+</body>
+</html>
